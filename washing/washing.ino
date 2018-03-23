@@ -188,6 +188,24 @@ void selector_toggle(int idx) {
   set_selector(idx, value);
 }
 
+const int CYCLE_COUNT = 5;
+const LedLoc CYCLE_LEDS[CYCLE_COUNT] = {
+  {9, 6}, {6, 2}, {5, 3}, {1, 3}, {0, 3},
+};
+
+void set_cycle(int val) {
+  val %= CYCLE_COUNT;
+  if (val < 0) val += CYCLE_COUNT;
+  for (int i = 0; i < CYCLE_COUNT; i++) {
+    const LedLoc l = CYCLE_LEDS[i];
+    set_led(l.row, l.col, val == i);
+  }
+}
+
+const LedLoc BABY_MODE_LED = {4, 3};
+const LedLoc LOCK_MODE_LED = {3, 3};
+const LedLoc PLUS_MODE_LED = {2, 3};
+
 const int SPINNER_COUNT = 12;
 const LedLoc SPINNER_LEDS[SPINNER_COUNT] = {
   {3, 2}, {4, 1}, {4, 2}, {5, 1}, {6, 1}, {0, 2},
