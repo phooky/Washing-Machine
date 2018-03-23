@@ -213,19 +213,12 @@ const LedLoc SPINNER_LEDS[SPINNER_COUNT] = {
   {0, 1}, {1, 1}, {1, 2}, {2, 1}, {2, 2}, {3, 1},
 };
 
-int spinner_val = 0;
-
 void set_spinner(int val) {
   val %= SPINNER_COUNT;
   if (val < 0) val += SPINNER_COUNT;
   for (int i = 0; i < SPINNER_COUNT; i++) {
     set_led(SPINNER_LEDS[i], val == i);
   }
-}
-
-void spinner_inc(int delta) {
-  spinner_val += delta;
-  set_spinner(spinner_val);
 }
 
 void illum_toggle(int idx) {
@@ -238,6 +231,7 @@ void illum_toggle(int idx) {
 class Mode {
     Display d;
     void init();
+  public:
     void enter_mode();
     void handle_event(Event e);
     void exit_mode();
@@ -248,7 +242,7 @@ void Mode::init() {
 }
 
 void Mode::enter_mode() {
-  copy_display(raw_display,d);
+  copy_display(raw_display, d);
 }
 
 void Mode::exit_mode() {
@@ -256,10 +250,32 @@ void Mode::exit_mode() {
 }
 
 class BabyMode : public Mode {
+    int dial_setting = 0;
+  public:
     void handle_event(Event e);
 };
 
 void BabyMode::handle_event(Event e) {
+  if (e.type == DIAL_TURN) {
+    dial_setting += e.value;
+    set_spinner(dial_setting);
+    tone(15, (e.value > 0) ? 1200 : 800, 60);
+    if (dial_setting < 0) {
+      set_led(CLOCK_LED, true);
+      set_numeric_display(-dial_setting);
+    } else {
+      set_led(CLOCK_LED, false);
+      set_numeric_display(dial_setting);
+    }
+  } else if (e.type == BUTTON_PRESS) {
+    tone(15, 900 + (e.value * 50), 150);
+    if (e.value < ILLUMINATED_COUNT) {
+      illum_toggle(e.value);
+    } else if (e.value < ILLUMINATED_COUNT + SELECTOR_COUNT) {
+      int v = e.value - ILLUMINATED_COUNT;
+      selector_toggle(v);
+    }
+  }
 }
 
 BabyMode babyMode;
@@ -362,35 +378,13 @@ void timer_update() {
   }
 }
 
-int dial_setting = 0;
-
 void loop() {
   if (since == T1_UPDATES_PER_TIMEOUT) {
     sleep_mode();
   }
   while (q_available()) {
     Event e = q_dequeue();
-    if (e.type == DIAL_TURN) {
-      dial_setting += e.value;
-      spinner_inc(e.value);
-      tone(15, (e.value > 0) ? 1200 : 800, 60);
-      if (dial_setting < 0) {
-        set_led(CLOCK_LED, true);
-        set_numeric_display(-dial_setting);
-      } else {
-        set_led(CLOCK_LED, false);
-        set_numeric_display(dial_setting);
-      }
-    } else if (e.type == BUTTON_PRESS) {
-      tone(15, 900 + (e.value * 50), 150);
-      //pinMode(15,OUTPUT);
-      if (e.value < ILLUMINATED_COUNT) {
-        illum_toggle(e.value);
-      } else if (e.value < ILLUMINATED_COUNT + SELECTOR_COUNT) {
-        int v = e.value - ILLUMINATED_COUNT;
-        selector_toggle(v);
-      }
-    }
+    babyMode.handle_event(e);
   }
 }
 
