@@ -33,6 +33,11 @@ const int led_col[LED_COL_COUNT] = { 38, 39, 40, 41, 42, 43, 44, 45 };
 const int button_row[BUTTON_ROW_COUNT] = { 16, 17 };
 const int QUAD_A = 18;
 const int QUAD_B = 19;
+// Struct for describing an LED's location
+typedef struct {
+  uint8_t row;
+  uint8_t col;
+} LedLoc;
 
 // ---- Firmware state ----
 uint16_t raw_display[LED_COL_COUNT];
@@ -114,12 +119,6 @@ const uint16_t DIGITS[23] = {
 };
 const uint8_t BLANK = 22;
 
-typedef struct {
-  uint8_t row;
-  uint8_t col;
-} LedLoc;
-
-
 void set_digit(int pos, int val) {
   pos += 4;
   raw_display[pos] = (raw_display[pos] & ~0x7f) | DIGITS[val];
@@ -142,11 +141,11 @@ void set_numeric_display(int value, bool show_zeros = false, int radix = 10) {
   }
 }
 
-void set_led(int row, int col, bool on) {
+void set_led(const LedLoc l, bool on) {
   if (on) {
-    raw_display[col] |= 1 << row;
+    raw_display[l.col] |= 1 << l.row;
   } else {
-    raw_display[col] &= ~(1 << row);
+    raw_display[l.col] &= ~(1 << l.row);
   }
 }
 
@@ -175,8 +174,7 @@ int selector_value[SELECTOR_COUNT] = { -1, -1, -1, -1 };
 
 void set_selector(int idx, int val) {
   for (int i = 0; i < SELECTOR_HEIGHT; i++) {
-    const LedLoc l = SELECTOR_LEDS[idx][i];
-    set_led(l.row, l.col, val == i);
+    set_led(SELECTOR_LEDS[idx][i], val == i);
   }
 }
 
@@ -197,14 +195,16 @@ void set_cycle(int val) {
   val %= CYCLE_COUNT;
   if (val < 0) val += CYCLE_COUNT;
   for (int i = 0; i < CYCLE_COUNT; i++) {
-    const LedLoc l = CYCLE_LEDS[i];
-    set_led(l.row, l.col, val == i);
+    set_led(CYCLE_LEDS[i], val == i);
   }
 }
 
 const LedLoc BABY_MODE_LED = {4, 3};
 const LedLoc LOCK_MODE_LED = {3, 3};
 const LedLoc PLUS_MODE_LED = {2, 3};
+
+const LedLoc CLOCK_LED = {4, 0};
+const LedLoc OTHER_LED = {3, 0};
 
 const int SPINNER_COUNT = 12;
 const LedLoc SPINNER_LEDS[SPINNER_COUNT] = {
@@ -218,8 +218,7 @@ void set_spinner(int val) {
   val %= SPINNER_COUNT;
   if (val < 0) val += SPINNER_COUNT;
   for (int i = 0; i < SPINNER_COUNT; i++) {
-    const LedLoc l = SPINNER_LEDS[i];
-    set_led(l.row, l.col, val == i);
+    set_led(SPINNER_LEDS[i], val == i);
   }
 }
 
@@ -231,8 +230,7 @@ void spinner_inc(int delta) {
 void illum_toggle(int idx) {
   const bool state = !illuminated_led_state[idx];
   illuminated_led_state[idx] = state;
-  const LedLoc l = ILLUMINATED_LEDS[idx];
-  set_led(l.row, l.col, state);
+  set_led(ILLUMINATED_LEDS[idx], state);
 }
 
 void setup() {
@@ -349,10 +347,10 @@ void loop() {
       spinner_inc(e.value);
       tone(15, (e.value > 0) ? 1200 : 800, 60);
       if (dial_setting < 0) {
-        set_led(4, 0, true);
+        set_led(CLOCK_LED, true);
         set_numeric_display(-dial_setting);
       } else {
-        set_led(4, 0, false);
+        set_led(CLOCK_LED, false);
         set_numeric_display(dial_setting);
       }
     } else if (e.type == BUTTON_PRESS) {
