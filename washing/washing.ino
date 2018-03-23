@@ -73,12 +73,12 @@ inline bool q_available() {
 }
 
 inline void q_enqueue(EventType t, int8_t val) {
-  queue[qend].type = t; queue[qend].value = val; qend = (qend+1)%MAX_EVTS;
+  queue[qend].type = t; queue[qend].value = val; qend = (qend + 1) % MAX_EVTS;
 }
 
 inline Event q_dequeue() {
   Event e = queue[qstart];
-  qstart = (qstart+1)%MAX_EVTS;
+  qstart = (qstart + 1) % MAX_EVTS;
   return e;
 }
 
@@ -88,7 +88,7 @@ inline Event q_dequeue() {
 // Digits 0x10 - 0x15, display cycle
 // Digit  0x16 - blank
 const uint16_t DIGITS[23] = {
-  0x7e, 
+  0x7e,
   0x30, // 1
   0x6d, // 2
   0x79, // 3
@@ -129,7 +129,7 @@ void set_numeric_display(int value, bool show_zeros = false, int radix = 10) {
   int pos = 0;
   while (pos < 4) {
     if (value != 0) {
-      set_digit(pos, value%radix);
+      set_digit(pos, value % radix);
       value /= radix;
     } else {
       if (show_zeros || pos == 0) {
@@ -146,28 +146,28 @@ void set_led(int row, int col, bool on) {
   if (on) {
     raw_display[col] |= 1 << row;
   } else {
-    raw_display[col] &= ~(1<<row);
+    raw_display[col] &= ~(1 << row);
   }
 }
 
 const int ILLUMINATED_COUNT = 5;
 const LedLoc ILLUMINATED_LEDS[ILLUMINATED_COUNT] = {
-  {10,0}, {10,1}, {10,2}, {10,3}, {9,5},
+  {10, 0}, {10, 1}, {10, 2}, {10, 3}, {9, 5},
 };
 
 bool illuminated_led_state[ILLUMINATED_COUNT];
 
 void illum_init() {
-  for (int i =0; i < ILLUMINATED_COUNT; i++) illuminated_led_state[i] = false;
+  for (int i = 0; i < ILLUMINATED_COUNT; i++) illuminated_led_state[i] = false;
 }
 
 const int SELECTOR_COUNT = 4;
 const int SELECTOR_HEIGHT = 5;
 const LedLoc SELECTOR_LEDS[SELECTOR_COUNT][SELECTOR_HEIGHT] = {
-  { {9,2}, {9,1}, {9,3}, {9,0}, {8,2} },
-  { {8,1}, {8,6}, {8,5}, {8,4}, {8,3} },
-  { {8,0}, {7,1}, {7,2}, {7,6}, {7,5} },
-  { {7,4}, {7,3}, {7,0}, {6,3}, {9,4} },
+  { {9, 2}, {9, 1}, {9, 3}, {9, 0}, {8, 2} },
+  { {8, 1}, {8, 6}, {8, 5}, {8, 4}, {8, 3} },
+  { {8, 0}, {7, 1}, {7, 2}, {7, 6}, {7, 5} },
+  { {7, 4}, {7, 3}, {7, 0}, {6, 3}, {9, 4} },
 };
 
 int selected_digit = -1;
@@ -190,23 +190,24 @@ void selector_toggle(int idx) {
 
 const int SPINNER_COUNT = 12;
 const LedLoc SPINNER_LEDS[SPINNER_COUNT] = {
-  {3,2}, {4,1}, {4,2}, {5,1}, {6,1}, {0,2},
-  {0,1}, {1,1}, {1,2}, {2,1}, {2,2}, {3,1},
+  {3, 2}, {4, 1}, {4, 2}, {5, 1}, {6, 1}, {0, 2},
+  {0, 1}, {1, 1}, {1, 2}, {2, 1}, {2, 2}, {3, 1},
 };
 
 int spinner_val = 0;
-void spinner_inc(int delta) {
-  {
-    const LedLoc l = SPINNER_LEDS[spinner_val];
-    set_led(l.row, l.col, false);
+
+void set_spinner(int val) {
+  val %= SPINNER_COUNT;
+  if (val < 0) val += SPINNER_COUNT;
+  for (int i = 0; i < SPINNER_COUNT; i++) {
+    const LedLoc l = SPINNER_LEDS[i];
+    set_led(l.row, l.col, val == i);
   }
+}
+
+void spinner_inc(int delta) {
   spinner_val += delta;
-  while (spinner_val < 0) spinner_val += SPINNER_COUNT;
-  spinner_val %= SPINNER_COUNT;
-  {
-    const LedLoc l = SPINNER_LEDS[spinner_val];
-    set_led(l.row, l.col, true);
-  }  
+  set_spinner(spinner_val);
 }
 
 void illum_toggle(int idx) {
@@ -233,19 +234,19 @@ void setup() {
   pinMode(QUAD_B, INPUT_PULLUP);
   blank();
   for (i = 0; i < LED_COL_COUNT; i++) {
-    raw_display[i]=0;
+    raw_display[i] = 0;
   }
   quad_state = Q_READY;
   q_init();
   illum_init();
-  set_sleep_mode(SLEEP_MODE_IDLE); 
+  set_sleep_mode(SLEEP_MODE_IDLE);
   sleep_enable();
   power_adc_disable();
   power_spi_disable();
   power_twi_disable();
   //power_timer0_disable();
   power_timer2_disable();
-  
+
   buttons = buttons_last = 0;
   Serial.begin(9600);
   Timer1.initialize(T1_US);
@@ -271,11 +272,11 @@ void update_quad() {
   int qbp = digitalRead(QUAD_B);
   if (quad_state == Q_READY) {
     if (qap == LOW) {
-      quad_state = Q_WAIT; q_enqueue(DIAL_TURN,1); since = 0;
+      quad_state = Q_WAIT; q_enqueue(DIAL_TURN, 1); since = 0;
     }
-    if (qbp == LOW) { 
-      quad_state = Q_WAIT; q_enqueue(DIAL_TURN,-1); since = 0;
-      
+    if (qbp == LOW) {
+      quad_state = Q_WAIT; q_enqueue(DIAL_TURN, -1); since = 0;
+
     }
   } else {
     if (qap == HIGH && qbp == HIGH) {
@@ -290,24 +291,26 @@ void timer_update() {
   cur_col = (cur_col + 1) % LED_COL_COUNT;
   if (since < T1_UPDATES_PER_TIMEOUT) {
     for (int i = 0; i < LED_ROW_COUNT; i++) {
-      digitalWrite(led_row[i], ((raw_display[cur_col] >> i)&0x01)?HIGH:LOW);
+      digitalWrite(led_row[i], ((raw_display[cur_col] >> i) & 0x01) ? HIGH : LOW);
     }
     since++;
-    if (since == T1_UPDATES_PER_TIMEOUT) { blank(); }
+    if (since == T1_UPDATES_PER_TIMEOUT) {
+      blank();
+    }
   }
   digitalWrite(led_col[cur_col], HIGH);
-  uint16_t b = buttons & ~(0x3 << (cur_col*2));  
+  uint16_t b = buttons & ~(0x3 << (cur_col * 2));
   for (int i = 0; i < BUTTON_ROW_COUNT; i++) {
-    if (digitalRead(button_row[i]) == HIGH) b |= (0x1 << ((cur_col*2)+i)); 
+    if (digitalRead(button_row[i]) == HIGH) b |= (0x1 << ((cur_col * 2) + i));
   }
   buttons = b;
   if (cur_col == 0) {
     uint16_t pushed = (buttons ^ buttons_last) & buttons;
     buttons_last = buttons;
     for (int i = 0; i < 16; i++) {
-      if ((1<<i)&pushed) {
+      if ((1 << i)&pushed) {
         since = 0;
-        q_enqueue(BUTTON_PRESS,i);
+        q_enqueue(BUTTON_PRESS, i);
       }
     }
   }
@@ -326,12 +329,12 @@ void loop() {
     if (e.type == DIAL_TURN) {
       dial_setting += e.value;
       spinner_inc(e.value);
-      tone(15, (e.value>0)?1200:800, 60);
+      tone(15, (e.value > 0) ? 1200 : 800, 60);
       if (dial_setting < 0) {
-        set_led(4,0,true);
+        set_led(4, 0, true);
         set_numeric_display(-dial_setting);
       } else {
-        set_led(4,0,false);
+        set_led(4, 0, false);
         set_numeric_display(dial_setting);
       }
     } else if (e.type == BUTTON_PRESS) {
