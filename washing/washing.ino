@@ -60,7 +60,7 @@ const uint32_t T1_UPDATES_PER_TIMEOUT = 72000; //(1000 * (IF_TIMEOUT * 1000)/T1_
 
 // --- Event queue ---
 const int MAX_EVTS = 8;
-typedef enum { BUTTON_PRESS, DIAL_TURN, MODE_ENTER, MODE_EXIT } EventType;
+typedef enum { BUTTON_PRESS, DIAL_TURN } EventType;
 typedef struct {
   EventType type;
   int8_t value;
@@ -234,6 +234,36 @@ void illum_toggle(int idx) {
   set_led(ILLUMINATED_LEDS[idx], state);
 }
 
+// ---- Interface modes ----
+class Mode {
+    Display d;
+    void init();
+    void enter_mode();
+    void handle_event(Event e);
+    void exit_mode();
+};
+
+void Mode::init() {
+  blank(d);
+}
+
+void Mode::enter_mode() {
+  copy_display(raw_display,d);
+}
+
+void Mode::exit_mode() {
+  copy_display(d, raw_display);
+}
+
+class BabyMode : public Mode {
+    void handle_event(Event e);
+};
+
+void BabyMode::handle_event(Event e) {
+}
+
+BabyMode babyMode;
+
 void setup() {
   int i;
   for (i = 0; i < LED_ROW_COUNT; i++) {
@@ -271,6 +301,12 @@ void setup() {
 void blank(Display &display) {
   for (int i = 0; i < LED_COL_COUNT; i++) {
     display[i] = 0;
+  }
+}
+
+void copy_display(Display& to, Display& from) {
+  for (int i = 0; i < LED_COL_COUNT; i++) {
+    to[i] = from[i];
   }
 }
 
