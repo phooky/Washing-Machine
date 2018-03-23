@@ -40,7 +40,8 @@ typedef struct {
 } LedLoc;
 
 // ---- Firmware state ----
-uint16_t raw_display[LED_COL_COUNT];
+typedef uint16_t Display[LED_COL_COUNT];
+Display raw_display;
 uint16_t buttons;
 uint16_t buttons_last;
 // Quadrature encoder state
@@ -59,7 +60,7 @@ const uint32_t T1_UPDATES_PER_TIMEOUT = 72000; //(1000 * (IF_TIMEOUT * 1000)/T1_
 
 // --- Event queue ---
 const int MAX_EVTS = 8;
-typedef enum { BUTTON_PRESS, DIAL_TURN } EventType;
+typedef enum { BUTTON_PRESS, DIAL_TURN, MODE_ENTER, MODE_EXIT } EventType;
 typedef struct {
   EventType type;
   int8_t value;
@@ -248,10 +249,7 @@ void setup() {
   }
   pinMode(QUAD_A, INPUT_PULLUP);
   pinMode(QUAD_B, INPUT_PULLUP);
-  blank();
-  for (i = 0; i < LED_COL_COUNT; i++) {
-    raw_display[i] = 0;
-  }
+  blank(raw_display);
   quad_state = Q_READY;
   q_init();
   illum_init();
@@ -270,13 +268,9 @@ void setup() {
   Timer1.start();
 }
 
-void blank() {
-  int i;
-  for (i = 0; i < LED_ROW_COUNT; i++) {
-    digitalWrite(led_row[i], LOW);
-  }
-  for (i = 0; i < LED_COL_COUNT; i++) {
-    digitalWrite(led_col[i], LOW);
+void blank(Display &display) {
+  for (int i = 0; i < LED_COL_COUNT; i++) {
+    display[i] = 0;
   }
 }
 
@@ -311,7 +305,7 @@ void timer_update() {
     }
     since++;
     if (since == T1_UPDATES_PER_TIMEOUT) {
-      blank();
+      blank(raw_display);
     }
   }
   digitalWrite(led_col[cur_col], HIGH);
@@ -333,8 +327,6 @@ void timer_update() {
 }
 
 int dial_setting = 0;
-int row = 0;
-int column = 0;
 
 void loop() {
   if (since == T1_UPDATES_PER_TIMEOUT) {
