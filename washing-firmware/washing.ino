@@ -204,6 +204,8 @@ const LedLoc BABY_MODE_LED = {4, 3};
 const LedLoc LOCK_MODE_LED = {3, 3};
 const LedLoc PLUS_MODE_LED = {2, 3};
 
+const LedLoc MODE_LEDS[] = { BABY_MODE_LED, LOCK_MODE_LED, PLUS_MODE_LED };
+
 const LedLoc CLOCK_LED = {4, 0};
 const LedLoc OTHER_LED = {3, 0};
 
