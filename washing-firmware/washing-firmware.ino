@@ -359,7 +359,7 @@ void timer_update() {
     }
     since++;
     if (since == T1_UPDATES_PER_TIMEOUT) {
-      blank(raw_display);
+      for (int i = 0; i < LED_ROW_COUNT; i++) digitalWrite(led_row[i], LOW);
     }
   }
   digitalWrite(led_col[cur_col], HIGH);
