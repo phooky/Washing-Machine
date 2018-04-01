@@ -53,6 +53,8 @@ static int cur_col = 0;
 
 // Timer 1 update triggers every 1250 microseconds
 const uint32_t T1_US = 1250;
+// Timer 1 update triggers every 50000 microseconds during sleep mode
+const uint32_t T1_SLEEP_US = 50000;
 // Timeout in seconds without interaction
 const uint32_t IF_TIMEOUT = 90;
 // Updates per timeout
@@ -349,7 +351,30 @@ void update_quad() {
   }
 }
 
+volatile bool sleeping = false;
+
+bool any_button() {
+  if (digitalRead(QUAD_A) == LOW) return true;
+  if (digitalRead(QUAD_B) == LOW) return true;
+  for (int i = 0; i < LED_COL_COUNT; i++) {
+    digitalWrite(led_col[i], HIGH);
+    bool p = false;
+    for (int j = 0; j < BUTTON_ROW_COUNT; j++) {
+      if (digitalRead(button_row[j]) == HIGH) p =  true;
+    }
+    digitalWrite(led_col[i], LOW);
+    if (p) return true;
+  }
+  return false;
+}
+
 void timer_update() {
+  if (sleeping) {
+    if (any_button()) {
+      sleeping = false;
+      Timer1.setPeriod(T1_US);
+    } else { return; }
+  }
   update_quad();
   digitalWrite(led_col[cur_col], LOW);
   cur_col = (cur_col + 1) % LED_COL_COUNT;
@@ -360,6 +385,8 @@ void timer_update() {
     since++;
     if (since == T1_UPDATES_PER_TIMEOUT) {
       for (int i = 0; i < LED_ROW_COUNT; i++) digitalWrite(led_row[i], LOW);
+      sleeping = true;
+      Timer1.setPeriod(T1_SLEEP_US);
     }
   }
   digitalWrite(led_col[cur_col], HIGH);
