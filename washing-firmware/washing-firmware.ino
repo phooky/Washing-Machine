@@ -234,16 +234,40 @@ void illum_toggle(int idx) {
 // ---- Interface modes ----
 class Mode {
     Display d;
-    void init();
+    static Mode* last;
+    static Mode* current;
+    Mode* next;
   public:
-    void enter_mode();
-    void handle_event(Event e);
-    void exit_mode();
+    static Mode& cur() { return *current; }
+    static void advance();
+    Mode();
+    virtual void enter_mode();
+    virtual void handle_event(Event e) = 0;
+    virtual void exit_mode();
 };
 
-void Mode::init() {
-  blank(d);
+Mode* Mode::last = NULL;
+Mode* Mode::current = NULL;
+
+void Mode::advance() {
+  current->exit_mode();
+  current = current->next;
+  current->enter_mode();
 }
+
+Mode::Mode() {
+  blank(d);
+  if (current == NULL) {
+    current = this;
+  }
+  if (last != NULL) {
+    next = last->next;
+    last->next = this;
+  } else {
+    this->next = this;
+  }
+  last = this;
+};
 
 void Mode::enter_mode() {
   copy_display(raw_display, d);
@@ -256,8 +280,20 @@ void Mode::exit_mode() {
 class BabyMode : public Mode {
     int dial_setting = 0;
   public:
+    void enter_mode();
     void handle_event(Event e);
+    void exit_mode();
 };
+
+void BabyMode::enter_mode() {
+  set_led(BABY_MODE_LED, true);
+  Mode::enter_mode();
+}
+
+void BabyMode::exit_mode() {
+  set_led(BABY_MODE_LED, true);
+  Mode::exit_mode();
+}
 
 void BabyMode::handle_event(Event e) {
   if (e.type == DIAL_TURN) {
@@ -413,7 +449,7 @@ void loop() {
   }
   while (q_available()) {
     Event e = q_dequeue();
-    babyMode.handle_event(e);
+    Mode::cur().handle_event(e);
   }
 }
 
